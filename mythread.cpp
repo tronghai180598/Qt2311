@@ -1,3 +1,4 @@
+//Da xoa OK
 #include "mythread.h"
 #include <inttypes.h>
 #include <stdio.h>
@@ -5,8 +6,7 @@
 #include <QTime>
 #include "controller.h"
 #include <QDebug>
-//da thay doi lan 1
-//Moi thay doi lai
+
 void MyThread::run()
 {
     int cnt = 1;
