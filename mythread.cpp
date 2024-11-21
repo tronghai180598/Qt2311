@@ -6,6 +6,7 @@
 #include "controller.h"
 #include <QDebug>
 //da thay doi lan 1
+//Moi thay diu
 void MyThread::run()
 {
     int cnt = 1;
