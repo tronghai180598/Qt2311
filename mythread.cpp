@@ -1,5 +1,4 @@
-//Da xoa OK
-//Thay Sua
+//Da them 1 nhanh
 #include "mythread.h"
 #include <inttypes.h>
 #include <stdio.h>
