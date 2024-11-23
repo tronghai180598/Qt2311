@@ -1,4 +1,5 @@
 //Da them 1 nhanh
+//Hai da them
 #include "mythread.h"
 #include <inttypes.h>
 #include <stdio.h>
