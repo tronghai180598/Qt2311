@@ -9,7 +9,16 @@
 *.so.*
 *.dll
 *.dylib
+# Файлы сборки
+build-*/
 
+# Логи
+*.log
+*.tmp
+
+# Временные и резервные файлы
+*.bak
+*.swp
 # Qt-es
 object_script.*.Release
 object_script.*.Debug
