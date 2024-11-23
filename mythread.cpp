@@ -5,8 +5,38 @@
 #include <stdio.h>
 #include "dialog.h"
 #include <QTime>
-#include "controller.h"
+//#include "controller.h"
 #include <QDebug>
+
+float MyThread::inert(float& out, float inp, float K, float T, float dt) {
+    out += dt * (inp * K - out) / T;
+    return out;
+}
+float MyThread::rdiff(float& out, float dinp, float Td, float Tf, float dt) {
+    out = out * (1 - dt / Tf) + dinp * Td / Tf;
+    return out;
+}
+
+float MyThread::intgr(float& out, float inp, float T, float dt) {
+    out += dt * inp / T;
+    return out;
+}
+float MyThread::saturate(float& inp, float fmn, float fmx) {
+    if (inp < fmn) inp = fmn;
+    if (inp > fmx) inp = fmx;
+    return inp;
+}
+float MyThread::update1PID(float pgain, float igain, float dgain, float fgain, float target, float cur, float deltaTime) {
+    err = target - cur;
+    err *= pgain;
+    fIntgr = intgr(fIntgr, err, igain, deltaTime);
+    fIntgr = saturate(fIntgr, -100.0, 100.0);
+    frdiff = rdiff(frdiff, (err - last_1PID), dgain, fgain, deltaTime);
+    pid = inert(pid, (err + fIntgr + frdiff), 1.0, 0.03, deltaTime);
+    last_1PID = err;
+    pid = saturate(pid, -100.0, 100.0);
+    return pid;
+}
 
 void MyThread::run()
 {
@@ -56,31 +86,61 @@ void MyThread::run()
                     case 1:  // 1 PID Control
                     {
                         // Block scope for case 1
-                        Controller PID_1 = Controller(pDlg->Kp, pDlg->Ti, pDlg->Td, pDlg->Tf);
-                        PID_1out = PID_1.update1PID(pDlg->Des_Ang, mBfRc[0], mBfRc[4] * 0.001);
+//                        pid = Controller(pDlg->Kp, pDlg->Ti, pDlg->Td, pDlg->Tf);
+                        PID_1out = update1PID(pDlg->Kp, pDlg->Ti, pDlg->Td, pDlg->Tf, pDlg->Des_Ang, mBfRc[0], mBfRc[4] * 0.001);
                         int pid_output = static_cast<int>(PID_1out);
                         uint32_t pwmValue =  ((pDlg->PWM_1PID) + pid_output) | (((pDlg->PWM_1PID) - pid_output) << 16);
                         memcpy(mBfTr, &pwmValue, sizeof(pwmValue));
                         qDebug() << "1 PID Control - PID_out: " << pid_output;
                         break;
                     }
+//                    case 1:  // 1 PID Control
+//                    {
+//                        // Block scope for case 1
+//                        Controller PID_1 = Controller(pDlg->Kp, pDlg->Ti, pDlg->Td, pDlg->Tf);
+//                        PID_1out = PID_1.update1PID(pDlg->Des_Ang, mBfRc[0], mBfRc[4] * 0.001);
+//                        int pid_output = static_cast<int>(PID_1out);
+//                        uint32_t pwmValue =  ((pDlg->PWM_1PID) + pid_output) | (((pDlg->PWM_1PID) - pid_output) << 16);
+//                        memcpy(mBfTr, &pwmValue, sizeof(pwmValue));
+//                        qDebug() << "1 PID Control - PID_out: " << pid_output;
+//                        break;
+//                    }
                     case 2:  // 2 PID Control
                     {
                         // Block scope for case 2
-                        Controller Acc_PID = Controller(pDlg->Kp_ang, pDlg->Ki_ang, pDlg->Kd_ang, 0);
-                        Controller Vel_PID = Controller(pDlg->Kp_vel, pDlg->Ki_vel, pDlg->Kd_vel, 0);
-                        Vel_Des = Acc_PID.update2PID(pDlg->Des_Ang_2, mBfRc[0], mBfRc[4] * 0.001);
-                        PID_PWM = Vel_PID.update2PID(Vel_Des, mBfRc[1], mBfRc[4] * 0.001);
-                        int pid_out = static_cast<int>(PID_PWM);
+//                        Controller Acc_PID = Controller(pDlg->Kp_ang, pDlg->Ki_ang, pDlg->Kd_ang, 0);
+//                        Controller Vel_PID = Controller(pDlg->Kp_vel, pDlg->Ki_vel, pDlg->Kd_vel, 0);
+//                        Vel_Des = Acc_PID.update2PID(pDlg->Des_Ang_2, mBfRc[0], mBfRc[4] * 0.001);
+//                        PID_PWM = Vel_PID.update2PID(Vel_Des, mBfRc[1], mBfRc[4] * 0.001);
+//                        int pid_out = static_cast<int>(PID_PWM);
 
-                        uint32_t pwmValue =  ((pDlg->PWM_2PID) + pid_out) | (((pDlg->PWM_2PID) - pid_out) << 16);
-                        memcpy(mBfTr, &pwmValue, sizeof(pwmValue));
-                        qDebug() << "2 PID Control - PID_out: " << pid_out;
+//                        uint32_t pwmValue =  ((pDlg->PWM_2PID) + pid_out) | (((pDlg->PWM_2PID) - pid_out) << 16);
+//                        memcpy(mBfTr, &pwmValue, sizeof(pwmValue));
+//                        qDebug() << "2 PID Control - PID_out: " << pid_out;
                         break;
                     }
                     case 3:
                         // Logic for regulator type 3
                         break;
+                    case 4:
+                {
+                        error = pDlg->Des_Ang_cm - mBfRc[0];
+                        qDebug() << "ERROR: " << error;
+                        if (-10<error<10){
+                            itg += error *mBfRc[4] * 0.001;
+                            itg = saturate(itg, -200.0, 200.0);
+                        }
+
+                        diff = (error - last_err)/(mBfRc[4] * 0.001);
+                        pid  = pDlg->Kpc*error + pDlg->Kic*itg + pDlg->Kdc*diff;
+                        pid = saturate(pid, -200.0, 200.0);
+                        last_err = error ;
+                        int pid_out = static_cast<int>(pid);
+                        uint32_t pwmValue =  ((pDlg->PWM_CM_PID) + pid_out) | (((pDlg->PWM_CM_PID) - pid_out) << 16);
+                        memcpy(mBfTr, &pwmValue, sizeof(pwmValue));
+                        qDebug() << "1 PID Control - PID_out: " << pid;
+                        break;
+                }
                     default:
                         qWarning("Invalid regulator type");
                         break;

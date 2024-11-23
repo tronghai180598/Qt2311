@@ -29,6 +29,18 @@ private:
 //for 2PID:
   float Vel_Des;
   float PID_PWM;
+  float last_1PID;
+  float err;
+  float fIntgr, frdiff,pid;
+  float itg, diff;
+  float error, last_err = 0.0;
+
+  float inert(float &out, float inp, float K, float T, float dt);
+  float rdiff(float &out, float dinp, float Td, float Tf, float dt);
+  float intgr(float &out, float inp, float T, float dt);
+  float saturate(float &inp, float fmn, float fmx);
+  float update1PID(float pgain, float igain, float dgain, float fgain, float target, float cur, float deltaTime);
+// Public access to gain parameters
   //
 
 };
